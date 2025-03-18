@@ -9,34 +9,53 @@ public class TargetDummy : MonoBehaviour
 
     [Header("Settings")]
     [SerializeField] private float colliderDisableDelay = 0.5f;
-    [SerializeField] private bool startActive = false;
+
+    // Параметры аниматора
+    private const string ACTIVATE_TRIGGER = "Activate";
+    private const string DEATH_TRIGGER = "Death";
 
     private bool isDead = false;
-    private bool isSystemActive = false; // Флаг активности системы
+    private bool isActive = false;
 
     private void Start()
     {
         if (hitCollider == null)
             hitCollider = GetComponent<Collider>();
 
-        isSystemActive = startActive; // Для ручной активации в редакторе
+    }
+
+
+    public void ResetDummy()
+    {
+        isDead = false;
+        isActive = false;
+
+        // Сбрасываем все триггеры и включаем коллайдер
+        dummyAnimator.ResetTrigger(ACTIVATE_TRIGGER);
+
+        hitCollider.enabled = true;
+    }
+
+    public void ActivateDummy()
+    {
+        if (isDead) return;
+
+        isActive = true;
+        dummyAnimator.SetTrigger(ACTIVATE_TRIGGER);
     }
 
     private void OnCollisionEnter(Collision other)
     {
-        if (isDead || !other.gameObject.CompareTag("Weapon")) return;
+        if (!isActive || isDead || !other.gameObject.CompareTag("Weapon")) return;
 
         Destroy(other.gameObject);
-
         StartDeath();
     }
 
     private void StartDeath()
     {
         isDead = true;
-
-        dummyAnimator.SetTrigger("Death");
-
+        dummyAnimator.SetTrigger(DEATH_TRIGGER);
         Invoke(nameof(DisableCollider), colliderDisableDelay);
 
         if (scoreManager != null)
@@ -45,21 +64,6 @@ public class TargetDummy : MonoBehaviour
 
     private void DisableCollider()
     {
-        if (hitCollider != null)
-            hitCollider.enabled = false;
-    }
-
-    public void ResetDummy()
-    {
-        isDead = false;
-        dummyAnimator.SetTrigger("Reset");
-        hitCollider.enabled = true;
-    }
-    public void ActivateDummy()
-    {
-        dummyAnimator.SetTrigger("Activate");
+        hitCollider.enabled = false;
     }
 }
-
-
-
