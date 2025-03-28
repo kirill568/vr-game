@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using TMPro;
 using System.Collections;
 
@@ -20,6 +21,7 @@ public class DummyTrigger : MonoBehaviour
 
     private bool isActivated = false;
     private float timeRemaining;
+    private bool gameEnded = false;
 
     private void Start()
     {
@@ -34,6 +36,11 @@ public class DummyTrigger : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        if (gameEnded)
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+
         if (isActivated || !other.CompareTag("Player"))
             return;
 
@@ -88,7 +95,7 @@ public class DummyTrigger : MonoBehaviour
         if (startText != null)
         {
             startText.gameObject.SetActive(true);
-            startText.text = "Time is out!";
+            startText.text = "Time is out! Please enter in to the platform again to restart the game.";
         }
 
         // Включаем обратно коллайдер панели, если нужно
@@ -104,5 +111,6 @@ public class DummyTrigger : MonoBehaviour
         }
 
         isActivated = false;
+        gameEnded = true;
     }
 }
