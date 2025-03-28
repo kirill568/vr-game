@@ -9,6 +9,7 @@ public class TargetDummy : MonoBehaviour
 
     [Header("Settings")]
     [SerializeField] private float colliderDisableDelay = 0.5f;
+    [SerializeField] private TargetDummy[] allDummies; // Список всех мишеней
 
     // Параметры аниматора
     private const string ACTIVATE_TRIGGER = "Activate";
@@ -22,6 +23,8 @@ public class TargetDummy : MonoBehaviour
         if (hitCollider == null)
             hitCollider = GetComponent<Collider>();
 
+        if (allDummies.Length == 0)
+            allDummies = FindObjectsOfType<TargetDummy>(); // Автоматический поиск мишеней, если не задано вручную
     }
 
 
@@ -60,10 +63,28 @@ public class TargetDummy : MonoBehaviour
 
         if (scoreManager != null)
             scoreManager.AddScore(10);
+
+        // Поднимаем новую случайную мишень
+        Invoke(nameof(ActivateRandomDummy), 1f); // Небольшая задержка перед поднятием новой мишени
     }
 
     private void DisableCollider()
     {
         hitCollider.enabled = false;
+    }
+
+    private void ActivateRandomDummy()
+    {
+        if (allDummies.Length == 0) return;
+
+        TargetDummy randomDummy;
+        do
+        {
+            randomDummy = allDummies[Random.Range(0, allDummies.Length)];
+        }
+        while (randomDummy == this || randomDummy.isDead); // Исключаем текущую и "мертвые" мишени
+
+        randomDummy.ResetDummy();
+        randomDummy.ActivateDummy();
     }
 }

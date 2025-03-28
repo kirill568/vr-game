@@ -42,10 +42,11 @@ public class DummyTrigger : MonoBehaviour
         // Включаем систему подсчета очков
         scoreManager.ActivateSystem();
 
-        // Активируем мишени
-        foreach (var dummy in targetDummies)
+        // Активируем случайную мишень
+        if (targetDummies.Length > 0)
         {
-            dummy.GetComponent<TargetDummy>().ActivateDummy();
+            int randomIndex = Random.Range(0, targetDummies.Length);
+            targetDummies[randomIndex].GetComponent<TargetDummy>().ActivateDummy();
         }
 
         // Скрываем стартовый текст, панель остаётся
