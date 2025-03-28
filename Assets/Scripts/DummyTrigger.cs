@@ -11,13 +11,17 @@ public class DummyTrigger : MonoBehaviour
     [SerializeField] private ScoreManager scoreManager;
 
     [Header("UI Setup")]
-    [SerializeField] private GameObject startPanel; // Основная панель
-    [SerializeField] private TextMeshPro startText; // Текст на панели
-    [SerializeField] private TextMeshPro timerText; // Таймер на панели
-    [SerializeField] private BoxCollider startPanelCollider; // Коллайдер панели
+    [SerializeField] private GameObject startPanel;
+    [SerializeField] private TextMeshPro startText;
+    [SerializeField] private TextMeshPro timerText;
+    [SerializeField] private BoxCollider startPanelCollider;
 
     [Header("Game Settings")]
     [SerializeField] private float gameDuration = 60f;
+
+    [Header("Audio Setup")]
+    [SerializeField] private AudioSource tickSource;   // Отдельный источник для тика таймера
+    [SerializeField] private AudioSource buttonSource; // Отдельный источник для звука кнопки
 
     private bool isActivated = false;
     private float timeRemaining;
@@ -27,7 +31,6 @@ public class DummyTrigger : MonoBehaviour
     {
         timeRemaining = gameDuration;
 
-        // Показываем стартовое время
         if (timerText != null)
         {
             timerText.text = $"Time: {Mathf.Ceil(timeRemaining)}";
@@ -46,29 +49,30 @@ public class DummyTrigger : MonoBehaviour
 
         isActivated = true;
 
-        // Включаем систему подсчета очков
+        // Воспроизводим звук кнопки через отдельный источник
+        if (buttonSource != null)
+        {
+            buttonSource.Play();
+        }
+
         scoreManager.ActivateSystem();
 
-        // Активируем случайную мишень
         if (targetDummies.Length > 0)
         {
             int randomIndex = Random.Range(0, targetDummies.Length);
             targetDummies[randomIndex].GetComponent<TargetDummy>().ActivateDummy();
         }
 
-        // Скрываем стартовый текст, панель остаётся
         if (startText != null)
         {
             startText.gameObject.SetActive(false);
         }
 
-        // Отключаем коллайдер панели, чтобы её можно было прострелить
         if (startPanelCollider != null)
         {
             startPanelCollider.enabled = false;
         }
 
-        // Запускаем таймер
         StartCoroutine(GameTimer());
     }
 
@@ -76,35 +80,39 @@ public class DummyTrigger : MonoBehaviour
     {
         while (timeRemaining > 0)
         {
-            timeRemaining -= Time.deltaTime;
+            timeRemaining -= 1f; // Уменьшаем таймер на 1 секунду
 
             if (timerText != null)
             {
                 timerText.text = $"Time: {Mathf.Ceil(timeRemaining)}";
             }
 
-            yield return null;
+            // Воспроизводим звук тика таймера (если аудиоклип не играет)
+            if (tickSource != null && !tickSource.isPlaying)
+            {
+                tickSource.Play();
+            }
+
+            yield return new WaitForSeconds(1f); // Ждём 1 секунду перед следующим тиком
         }
 
         EndGame();
     }
 
+
     private void EndGame()
     {
-        // Возвращаем текст на панель
         if (startText != null)
         {
             startText.gameObject.SetActive(true);
             startText.text = "Time is out! Please enter in to the platform again to restart the game.";
         }
 
-        // Включаем обратно коллайдер панели, если нужно
         if (startPanelCollider != null)
         {
             startPanelCollider.enabled = true;
         }
 
-        // Останавливаем мишени
         foreach (var dummy in targetDummies)
         {
             dummy.GetComponent<TargetDummy>().ResetDummy();

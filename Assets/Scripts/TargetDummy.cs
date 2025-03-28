@@ -9,9 +9,11 @@ public class TargetDummy : MonoBehaviour
 
     [Header("Settings")]
     [SerializeField] private float colliderDisableDelay = 0.5f;
-    [SerializeField] private TargetDummy[] allDummies; // Список всех мишеней
+    [SerializeField] private TargetDummy[] allDummies;
 
-    // Параметры аниматора
+    [Header("Audio")]
+    [SerializeField] private AudioSource hitSoundSource; // Звук попадания
+
     private const string ACTIVATE_TRIGGER = "Activate";
     private const string DEATH_TRIGGER = "Death";
 
@@ -24,19 +26,23 @@ public class TargetDummy : MonoBehaviour
             hitCollider = GetComponent<Collider>();
 
         if (allDummies.Length == 0)
-            allDummies = FindObjectsOfType<TargetDummy>(); // Автоматический поиск мишеней, если не задано вручную
-    }
+            allDummies = FindObjectsOfType<TargetDummy>();
 
+        // Отключаем коллайдер в самом начале
+        hitCollider.enabled = false;
+    }
 
     public void ResetDummy()
     {
         isDead = false;
         isActive = false;
 
-        // Сбрасываем все триггеры и включаем коллайдер
         dummyAnimator.ResetTrigger(ACTIVATE_TRIGGER);
+        dummyAnimator.ResetTrigger(DEATH_TRIGGER);
 
-        hitCollider.enabled = true;
+        hitCollider.enabled = false; // Оставляем выключенным до активации
+
+        dummyAnimator.Play("Idle", 0, 0);
     }
 
     public void ActivateDummy()
@@ -44,12 +50,19 @@ public class TargetDummy : MonoBehaviour
         if (isDead) return;
 
         isActive = true;
+        hitCollider.enabled = true; // Включаем коллайдер перед активацией
         dummyAnimator.SetTrigger(ACTIVATE_TRIGGER);
     }
 
     private void OnCollisionEnter(Collision other)
     {
         if (!isActive || isDead || !other.gameObject.CompareTag("Weapon")) return;
+
+        // Воспроизводим звук попадания сразу
+        if (hitSoundSource != null)
+        {
+            hitSoundSource.Play();
+        }
 
         Destroy(other.gameObject);
         StartDeath();
@@ -59,32 +72,35 @@ public class TargetDummy : MonoBehaviour
     {
         isDead = true;
         dummyAnimator.SetTrigger(DEATH_TRIGGER);
-        Invoke(nameof(DisableCollider), colliderDisableDelay);
+
+        // Отключаем коллайдер сразу после попадания
+        hitCollider.enabled = false;
 
         if (scoreManager != null)
             scoreManager.AddScore(10);
 
-        // Поднимаем новую случайную мишень
-        Invoke(nameof(ActivateRandomDummy), 1f); // Небольшая задержка перед поднятием новой мишени
-    }
-
-    private void DisableCollider()
-    {
-        hitCollider.enabled = false;
+        Invoke(nameof(ActivateRandomDummy), 1f);
     }
 
     private void ActivateRandomDummy()
     {
         if (allDummies.Length == 0) return;
 
+        if (System.Array.TrueForAll(allDummies, d => d.isDead))
+        {
+            foreach (var dummy in allDummies)
+            {
+                dummy.ResetDummy();
+            }
+        }
+
         TargetDummy randomDummy;
         do
         {
             randomDummy = allDummies[Random.Range(0, allDummies.Length)];
         }
-        while (randomDummy == this || randomDummy.isDead); // Исключаем текущую и "мертвые" мишени
+        while (randomDummy == this || randomDummy.isDead);
 
-        randomDummy.ResetDummy();
         randomDummy.ActivateDummy();
     }
 }
